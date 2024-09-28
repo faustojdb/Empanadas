@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pedido de Empanadas por Familia</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        h1 { color: #333; }
+        form { background: #f9f9f9; padding: 20px; border-radius: 8px; }
+        label { display: block; margin-top: 10px; }
+        input, select { width: 100%; padding: 8px; margin-top: 5px; }
+        button { background: #4CAF50; color: white; padding: 10px 15px; border: none; cursor: pointer; margin-top: 10px; }
+        #miembrosContainer { margin-top: 20px; }
+        .miembro { background: #fff; padding: 15px; margin-bottom: 10px; border-radius: 4px; }
+        #resultados { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Pedido de Empanadas por Familia</h1>
+    <form id="pedidoForm">
+        <label for="nombreFamilia">Nombre de la Familia:</label>
+        <input type="text" id="nombreFamilia" required>
+
+        <label for="numMiembros">Número de integrantes:</label>
+        <input type="number" id="numMiembros" min="1" required>
+
+        <button type="button" onclick="generarMiembros()">Generar campos para miembros</button>
+
+        <div id="miembrosContainer"></div>
+
+        <button type="submit">Enviar Pedido</button>
+    </form>
+
+    <div id="resultados"></div>
+
+    <script>
+        function generarMiembros() {
+            const numMiembros = document.getElementById('numMiembros').value;
+            const container = document.getElementById('miembrosContainer');
+            container.innerHTML = '';
+
+            for (let i = 0; i < numMiembros; i++) {
+                const div = document.createElement('div');
+                div.className = 'miembro';
+                div.innerHTML = `
+                    <h3>Miembro ${i + 1}</h3>
+                    <label>Nombre: <input type="text" name="nombre${i}" required></label>
+                    <h4>Empanadas:</h4>
+                    <label>Carne: <input type="number" name="carne${i}" min="0" value="0"></label>
+                    <label>Pollo: <input type="number" name="pollo${i}" min="0" value="0"></label>
+                    <label>Jamón y queso: <input type="number" name="jyq${i}" min="0" value="0"></label>
+                    <label>Sfijas: <input type="number" name="sfijas${i}" min="0" value="0"></label>
+                    <label>Otra: <input type="number" name="otra${i}" min="0" value="0"></label>
+                `;
+                container.appendChild(div);
+            }
+        }
+
+        document.getElementById('pedidoForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const familia = document.getElementById('nombreFamilia').value;
+            const numMiembros = document.getElementById('numMiembros').value;
+            let pedido = { familia, miembros: [] };
+            let totales = { carne: 0, pollo: 0, jyq: 0, sfijas: 0, otra: 0 };
+
+            for (let i = 0; i < numMiembros; i++) {
+                let miembro = {
+                    nombre: document.querySelector(`input[name="nombre${i}"]`).value,
+                    carne: parseInt(document.querySelector(`input[name="carne${i}"]`).value),
+                    pollo: parseInt(document.querySelector(`input[name="pollo${i}"]`).value),
+                    jyq: parseInt(document.querySelector(`input[name="jyq${i}"]`).value),
+                    sfijas: parseInt(document.querySelector(`input[name="sfijas${i}"]`).value),
+                    otra: parseInt(document.querySelector(`input[name="otra${i}"]`).value)
+                };
+                pedido.miembros.push(miembro);
+                
+                totales.carne += miembro.carne;
+                totales.pollo += miembro.pollo;
+                totales.jyq += miembro.jyq;
+                totales.sfijas += miembro.sfijas;
+                totales.otra += miembro.otra;
+            }
+
+            mostrarResultados(pedido, totales);
+            guardarCSV(pedido);
+        });
+
+        function mostrarResultados(pedido, totales) {
+            const resultadosDiv = document.getElementById('resultados');
+            let html = `<h2>Resumen del Pedido para la Familia ${pedido.familia}</h2>`;
+            html += `<h3>Total de Empanadas:</h3>
+                     <ul>
+                        <li>Carne: ${totales.carne}</li>
+                        <li>Pollo: ${totales.pollo}</li>
+                        <li>Jamón y queso: ${totales.jyq}</li>
+                        <li>Sfijas: ${totales.sfijas}</li>
+                        <li>Otra: ${totales.otra}</li>
+                     </ul>`;
+            
+            html += '<h3>Pedidos por Miembro:</h3>';
+            pedido.miembros.forEach(miembro => {
+                html += `<p>${miembro.nombre}: Carne (${miembro.carne}), Pollo (${miembro.pollo}), Jamón y queso (${miembro.jyq}), Sfijas (${miembro.sfijas}), Otra (${miembro.otra})</p>`;
+            });
+
+            resultadosDiv.innerHTML = html;
+        }
+
+        function guardarCSV(pedido) {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Familia,Miembro,Carne,Pollo,Jamón y queso,Sfijas,Otra\n";
+            
+            pedido.miembros.forEach(miembro => {
+                csvContent += `${pedido.familia},${miembro.nombre},${miembro.carne},${miembro.pollo},${miembro.jyq},${miembro.sfijas},${miembro.otra}\n`;
+            });
+
+            var encodedUri = encodeURI(csvContent);
+            var link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "pedido_empanadas.csv");
+            document.body.appendChild(link);
+            link.click();
+        }
+    </script>
+</body>
+</html>
